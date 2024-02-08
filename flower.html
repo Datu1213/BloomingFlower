@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+    <meta content="utf-8" charset="utf-8">
+    <title>
+        aa
+    </title>
+    <header>
+       <style>
+        body {
+            width: 100vw;
+            height: 100vh;
+        }   
+        .flower {
+            border: dashed 1vh;
+            position: relative;
+            width: 20vh;
+            height: 20vh;
+            left: 40vh;
+            top: 40vh;
+        }
+        .petal {
+            position: absolute;
+            width: calc(var(--radius) * 2);
+            height: calc(var(--radius) * 2);
+            border-radius: 50.0%;
+            background: transparent;
+            overflow: hidden;
+            transform-origin: '';
+            transform: rotate(var(--rotate-deg));
+            mix-blend-mode: screen;
+        }
+        .petal:before {
+            content: "";
+            width: inherit;
+            height: inherit;
+            border-radius: inherit;
+            position: absolute;
+            background: linear-gradient(135deg, rgb(0, 0, 255), rgb(255, 255, 255));
+            left: calc(2 * var(--radius) - var(--petal-width));
+        }
+        input {
+            position: relative;
+            height: 10vh;
+            width: 20vw;
+        }
+
+    </style> 
+    </header>
+    <body>
+        <div class="flower" id = "flower">  </div>
+        <div style="display: flex; flex-direction: column;margin-top: 5vh;">
+            <label for="petal-length">Length</label>
+            <input class="flower-control" id="petal-length" type="range" min="1" max="30" value="20" step="1""/>
+            <label for="petal-width">Width</label>
+            <input class="flower-control" id="petal-width" type="range" min="1" max="30" value="1" step="1"/>
+            <label for="petal-num">Num</label>
+            <input class="flower-control" id="petal-num" type="range" min="1" max="72" value="3" step="1"/>
+            <label for="petal-alpha">Alpha</label>
+            <input class="flower-control" id="petal-alpha" type="range" min="0" max="1" value="1" step="0.001"/>
+            <label for="flower-alpha">Range</label>
+            <input class="flower-control" id="flower-range" type="range" min="0" max="360" value="180" step="1"/>
+        </div>
+    </body>
+    <script> 
+        // (Radius - Width/2)^2 + (Length/2)^2 = Radius^2
+        // Radius = ((Width/2)^2 + (Length/2)^2) / Width = (Width^2 + Length^2) / (4 * Width)
+        function bloom(petalLength, petalWidth, petalNum, alpha, flowerRangeDegree, aa = undefined) {
+            let radius = Number((petalLength * petalLength + petalWidth * petalWidth) / (4 * petalWidth));
+            let flower = document.getElementById('flower')
+            flower.style.width  = `${ 2 * petalLength}vh`;
+            flower.style.height = `${ 2 * petalLength}vh`;
+            flower.style.left   = `${50 - petalLength}vh`;
+            flower.style.top    = `${50 - petalLength}vh`;
+            
+            let middleToSides = false?1:-1;
+            let odd = petalNum % 2;
+            let bias = Number(flowerRangeDegree === 360?1:0);
+            let middlePetal = Math.ceil(petalNum / 2);
+            let clockwise = false?1:-1;
+            let synchronous = false
+            let beginOffset = (1 - bias) * (-clockwise * flowerRangeDegree / 2);
+            let degreeUnit = flowerRangeDegree / (Number(petalNum) + 1.0 - bias);
+            let actualRotateDegree = 0;
+            let rotateDegree = function(clockwise, i, degreeUnit, flowerRangeDegree, petalNum, middleToSides, odd, bias, alpha, synchronous) {
+                    if (undefined === middleToSides) {
+                        if (synchronous)
+                            return Number(clockwise * i * degreeUnit * alpha);
+                        return clockwise * Math.min(Number(i * degreeUnit), Math.max(0, Number((flowerRangeDegree - (1 - bias) * degreeUnit) * alpha - bias * degreeUnit)));
+                    } else {
+                        if (synchronous)
+                            return i * degreeUnit * alpha;
+                        return Math.min(Number(i * degreeUnit), Math.max(0, Number((Math.ceil((petalNum - 1) / 2) - bias + Number(bias * petalNum % 2) + 1 + bias*(1 - petalNum % 2)) * alpha * degreeUnit - degreeUnit)));
+                    }
+                }
+            let opacity = function(i , alpha, petalNum, bias, synchronous, middleToSides, degreeUnit) {
+                if (undefined === middleToSides) {
+                    if (synchronous)
+                        return 1 / (1 + Math.exp(-30 * alpha + 10)) + "";
+                    let tmpAlpha = petalNum * alpha - Number(i) - Number(bias) + 1.0;
+                    return Math.min(1, Math.max(0, tmpAlpha)) + "";
+                } else {
+                    if (synchronous) {
+                        return 1 / (1 + Math.exp(-30 * alpha + 10)) + "";
+                    }
+                    let tmpAlpha = ((Math.ceil((petalNum - 1) / 2) - bias + Number(bias * petalNum % 2) + 1 + bias*(1 - petalNum % 2)) * alpha) - i
+                    
+                    return Math.min(1, Math.max(0, tmpAlpha)) + "";
+                }
+                
+            }
+            if (middleToSides === undefined) {
+                for (let i = 0 + (1 - bias); i < Number(petalNum) + (1 - bias); i++) {
+                    // let op = opacity(i , alpha, petalNum, bias, synchronous, middleToSides, degreeUnit);
+                    // if ("0" === op) continue;
+
+                    let petal = document.createElement('div');
+                    petal.className    = 'petal';
+                    actualRotateDegree = Number(beginOffset + rotateDegree(clockwise, i, degreeUnit, flowerRangeDegree, petalNum, middleToSides, odd, bias, alpha, synchronous));
+
+                    petal.style.setProperty('--radius',      `${radius}vh`);
+                    petal.style.setProperty('--rotate-deg',  `${actualRotateDegree}deg`);
+                    petal.style.setProperty('--petal-width', `${petalWidth}vh`);
+                    let transformOriginX = 2 * radius - petalWidth  / 2 + "vh";
+                    let transformOriginY =     radius + petalLength / 2 + "vh";
+                    petal.style.transformOrigin = `${transformOriginX}     ${transformOriginY}`;
+                    petal.style.left            = `${Number(petalWidth ) / 2.0 + Number(petalLength) - 2.0 * radius}vh`;
+                    petal.style.top             = `${Number(petalLength) / 2.0 - radius}vh`;
+                    petal.style.opacity         = opacity(i , alpha, petalNum, bias, synchronous, middleToSides, degreeUnit);
+                    flower.appendChild(petal);
+                }
+            } else {
+                if (-1 === middleToSides && 1 === bias) throw Error("Not supported! SideToMiddle and 360deg range are not compatible!")
+                beginOffset = 1 === middleToSides?0:flowerRangeDegree / 2;
+                if (1 === petalNum % 2 || 1 === bias){
+                    let petal = document.createElement('div');
+                    petal.className    = 'petal';
+                    actualRotateDegree = Number(0 * beginOffset + rotateDegree(clockwise, 0, degreeUnit, flowerRangeDegree, petalNum, middleToSides, odd, bias, alpha, synchronous));
+
+                    petal.style.setProperty('--radius',      `${radius}vh`);
+                    petal.style.setProperty('--rotate-deg',  `${actualRotateDegree}deg`);
+                    petal.style.setProperty('--petal-width', `${petalWidth}vh`);
+                    let transformOriginX = 2 * radius - petalWidth  / 2 + "vh";
+                    let transformOriginY =     radius + petalLength / 2 + "vh";
+                    petal.style.transformOrigin = `${transformOriginX}     ${transformOriginY}`;
+                    petal.style.left            = `${Number(petalWidth ) / 2.0 + Number(petalLength) - 2.0 * radius}vh`;
+                    petal.style.top             = `${Number(petalLength) / 2.0 - radius}vh`;
+                    petal.style.opacity         = opacity(0, alpha, petalNum, bias, synchronous, middleToSides, degreeUnit);
+                    flower.appendChild(petal);
+                }
+                for (let i = 1; i <= Math.ceil((petalNum - 1) / 2) - bias + Number(bias * petalNum % 2); i++) {
+                    let petal = document.createElement('div');
+                    petal.className    = 'petal';
+                    actualRotateDegree = Number(middleToSides * beginOffset + rotateDegree(clockwise, i, degreeUnit, flowerRangeDegree, petalNum, middleToSides, odd, bias, alpha, synchronous));
+
+                    petal.style.setProperty('--radius',      `${radius}vh`);
+                    petal.style.setProperty('--rotate-deg',  `${actualRotateDegree}deg`);
+                    petal.style.setProperty('--petal-width', `${petalWidth}vh`);
+                    let transformOriginX = 2 * radius - petalWidth  / 2 + "vh";
+                    let transformOriginY =     radius + petalLength / 2 + "vh";
+                    petal.style.transformOrigin = `${transformOriginX}     ${transformOriginY}`;
+                    petal.style.left            = `${Number(petalWidth ) / 2.0 + Number(petalLength) - 2.0 * radius}vh`;
+                    petal.style.top             = `${Number(petalLength) / 2.0 - radius}vh`;
+                    petal.style.opacity         = opacity(i, alpha, petalNum, bias, synchronous, middleToSides, degreeUnit);
+                    flower.appendChild(petal);
+
+                    // ---------------------------------------------------------------
+
+                    petal = document.createElement('div');
+                    petal.className    = 'petal';
+                    actualRotateDegree = Number(-middleToSides * beginOffset + -1 * rotateDegree(clockwise, i, degreeUnit, flowerRangeDegree, petalNum, middleToSides, odd, bias, alpha, synchronous));
+
+                    petal.style.setProperty('--radius',      `${radius}vh`);
+                    petal.style.setProperty('--rotate-deg',  `${actualRotateDegree}deg`);
+                    petal.style.setProperty('--petal-width', `${petalWidth}vh`);
+                    transformOriginX = 2 * radius - petalWidth  / 2 + "vh";
+                    transformOriginY =     radius + petalLength / 2 + "vh";
+                    petal.style.transformOrigin = `${transformOriginX}     ${transformOriginY}`;
+                    petal.style.left            = `${Number(petalWidth ) / 2.0 + Number(petalLength) - 2.0 * radius}vh`;
+                    petal.style.top             = `${Number(petalLength) / 2.0 - radius}vh`;
+                    petal.style.opacity         = opacity(i, alpha, petalNum, bias, synchronous, middleToSides, degreeUnit);;
+                    flower.appendChild(petal);
+                }
+
+                if (1 === bias && 0 === petalNum % 2) {
+                    let petal = document.createElement('div');
+                    petal.className    = 'petal';
+                    actualRotateDegree = Number(beginOffset + rotateDegree(clockwise, petalNum / 2, degreeUnit, flowerRangeDegree, petalNum, middleToSides, odd, bias, alpha, synchronous));
+                    actualRotateDegree = petalNum / 2 * degreeUnit
+                    petal.style.setProperty('--radius',      `${radius}vh`);
+                    petal.style.setProperty('--rotate-deg',  `${actualRotateDegree}deg`);
+                    petal.style.setProperty('--petal-width', `${petalWidth}vh`);
+                    let transformOriginX = 2 * radius - petalWidth  / 2 + "vh";
+                    let transformOriginY =     radius + petalLength / 2 + "vh";
+                    petal.style.transformOrigin = `${transformOriginX}     ${transformOriginY}`;
+                    petal.style.left            = `${Number(petalWidth ) / 2.0 + Number(petalLength) - 2.0 * radius}vh`;
+                    petal.style.top             = `${Number(petalLength) / 2.0 - radius}vh`;
+                    petal.style.opacity         = opacity(petalNum / 2, alpha, petalNum, bias, synchronous, middleToSides, degreeUnit);;
+                    flower.appendChild(petal);
+                }
+            }
+        }
+
+    
+        [...document.getElementsByClassName('flower-control')].forEach(controller => {
+            controller.addEventListener('input', function(e) {
+                let petalLength        = document.getElementById('petal-length').value;
+                let petalWidth         = document.getElementById('petal-width' ).value;
+                let petalNum           = document.getElementById('petal-num'   ).value;
+                let petalAlpha         = document.getElementById('petal-alpha' ).value;
+                let flowerRangeDegree  = document.getElementById('flower-range').value;
+                [...document.getElementById('flower').children].forEach(petal => { 
+                    petal.remove(); 
+                })
+                bloom(petalLength, petalWidth, petalNum, Number(petalAlpha), Number(flowerRangeDegree));
+            })
+        })
+
+        let petalLength        = document.getElementById('petal-length').value;
+        let petalWidth         = document.getElementById('petal-width' ).value;
+        let petalNum           = document.getElementById('petal-num'   ).value;
+        let petalAlpha         = document.getElementById('petal-alpha' ).value;
+        let flowerRangeDegree  = document.getElementById('flower-range').value;
+        bloom(petalLength, petalWidth, petalNum, Number(petalAlpha), Number(flowerRangeDegree));
+
+
+    </script>
+</html>
