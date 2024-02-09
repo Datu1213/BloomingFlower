@@ -62,9 +62,10 @@
         </div>
     </body>
     <script> 
-        // (Radius - Width/2)^2 + (Length/2)^2 = Radius^2
-        // Radius = ((Width/2)^2 + (Length/2)^2) / Width = (Width^2 + Length^2) / (4 * Width)
         function bloom(petalLength, petalWidth, petalNum, alpha, flowerRangeDegree, aa = undefined) {
+            // Basic Pythagorean theorem
+            // (Radius - Width/2)^2 + (Length/2)^2 = Radius^2
+            // Radius = ((Width/2)^2 + (Length/2)^2) / Width = (Width^2 + Length^2) / (4 * Width)
             let radius = Number((petalLength * petalLength + petalWidth * petalWidth) / (4 * petalWidth));
             let flower = document.getElementById('flower')
             flower.style.width  = `${ 2 * petalLength}vh`;
@@ -72,8 +73,9 @@
             flower.style.left   = `${50 - petalLength}vh`;
             flower.style.top    = `${50 - petalLength}vh`;
             
-            let middleToSides = false?1:-1;
-            let odd = petalNum % 2;
+            
+            let middleToSides = false?1:-1; // middleToSides: 1; sidesToMiddle: -1
+            let odd = petalNum % 2; // Avilaible when var middleToSides is not undifined
             let bias = Number(flowerRangeDegree === 360?1:0);
             let middlePetal = Math.ceil(petalNum / 2);
             let clockwise = false?1:-1;
@@ -89,7 +91,7 @@
                     } else {
                         if (synchronous)
                             return i * degreeUnit * alpha;
-                        return Math.min(Number(i * degreeUnit), Math.max(0, Number((Math.ceil((petalNum - 1) / 2) - bias + Number(bias * petalNum % 2) + 1 + bias*(1 - petalNum % 2)) * alpha * degreeUnit - degreeUnit)));
+                        return Math.min(Number(i * degreeUnit), Math.max(0, Number((Math.ceil((petalNum - 1) / 2) - bias + Number(bias * petalNum % 2) + 1 + bias*(1 - petalNum % 2)) * alpha * degreeUnit - degreeUnit -1*(middleToSides - 1)/2 * degreeUnit)));
                     }
                 }
             let opacity = function(i , alpha, petalNum, bias, synchronous, middleToSides, degreeUnit) {
@@ -102,7 +104,7 @@
                     if (synchronous) {
                         return 1 / (1 + Math.exp(-30 * alpha + 10)) + "";
                     }
-                    let tmpAlpha = ((Math.ceil((petalNum - 1) / 2) - bias + Number(bias * petalNum % 2) + 1 + bias*(1 - petalNum % 2)) * alpha) - i
+                    let tmpAlpha = ((Math.ceil((petalNum - 1) / 2) - bias + Number(bias * petalNum % 2) + 1 + bias*(1 - petalNum % 2)) * alpha) - i + -1*(middleToSides - 1)/2
                     
                     return Math.min(1, Math.max(0, tmpAlpha)) + "";
                 }
@@ -144,7 +146,7 @@
                     petal.style.transformOrigin = `${transformOriginX}     ${transformOriginY}`;
                     petal.style.left            = `${Number(petalWidth ) / 2.0 + Number(petalLength) - 2.0 * radius}vh`;
                     petal.style.top             = `${Number(petalLength) / 2.0 - radius}vh`;
-                    petal.style.opacity         = opacity(0, alpha, petalNum, bias, synchronous, middleToSides, degreeUnit);
+                    petal.style.opacity         = opacity(1===middleToSides?0:petalNum / 2, alpha, petalNum, bias, synchronous, middleToSides, degreeUnit);
                     flower.appendChild(petal);
                 }
                 for (let i = 1; i <= Math.ceil((petalNum - 1) / 2) - bias + Number(bias * petalNum % 2); i++) {
