@@ -73,13 +73,12 @@
             flower.style.left   = `${50 - petalLength}vh`;
             flower.style.top    = `${50 - petalLength}vh`;
             
-            
             let middleToSides = false?1:-1; // middleToSides: 1; sidesToMiddle: -1
             let odd = petalNum % 2; // Avilaible when var middleToSides is not undifined
-            let bias = Number(flowerRangeDegree === 360?1:0);
-            let middlePetal = Math.ceil(petalNum / 2);
-            let clockwise = false?1:-1;
-            let synchronous = false
+            let bias = Number(flowerRangeDegree === 360?1:0); // 360deg flower range will have a bias value "1"
+            // let middlePetal = Math.ceil(petalNum / 2); // Deprecated
+            let clockwise = false?1:-1; // Clockwise: 1, Anti-clockwise: -1
+            let synchronous = false // Petals move synchronously:true or one-by-one:false.
             let beginOffset = (1 - bias) * (-clockwise * flowerRangeDegree / 2);
             let degreeUnit = flowerRangeDegree / (Number(petalNum) + 1.0 - bias);
             let actualRotateDegree = 0;
